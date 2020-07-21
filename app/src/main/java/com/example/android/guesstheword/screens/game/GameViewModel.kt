@@ -1,11 +1,22 @@
 package com.example.android.guesstheword.screens.game
 
+import android.os.CountDownTimer
+import android.text.format.DateUtils
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Transformations
 import androidx.lifecycle.ViewModel
 
 class GameViewModel: ViewModel() {
+    companion object {
+        private const val DONE = 0L
+        private const val TICK_INTERVAL = 1000L
+        private const val GAME_DURATION = 10000L
+    }
+
+    private val timer: CountDownTimer
+
     // The current word
     private val _word = MutableLiveData<String>()
     val word: LiveData<String>
@@ -23,16 +34,33 @@ class GameViewModel: ViewModel() {
     val gameFinished: LiveData<Boolean>
         get() = _gameFinished
 
+    private val _remainingSeconds = MutableLiveData<Long>()
+    val remainingSecondsText: LiveData<String> = Transformations.map(_remainingSeconds) {
+        val remainingSeconds = it + 1
+        return@map DateUtils.formatElapsedTime(remainingSeconds) ?: ""
+    }
+
     init {
-        Log.i("GameViewModel", "GameViewModel created!")
         resetList()
         nextWord()
         _score.value = 0
+
+        timer = object: CountDownTimer(GAME_DURATION, TICK_INTERVAL) {
+            override fun onTick(p0: Long) {
+                _remainingSeconds.value = p0 / 1000
+            }
+
+            override fun onFinish() {
+                _gameFinished.value = true
+            }
+        }
+
+        timer.start()
     }
 
     override fun onCleared() {
         super.onCleared()
-        Log.i("GameViewModel", "GameViewModel destroyed!")
+        timer.cancel()
     }
 
     /**
@@ -68,10 +96,9 @@ class GameViewModel: ViewModel() {
     fun nextWord() {
         //Select and remove a word from the list
         if (wordList.isEmpty()) {
-            _gameFinished.value = true
-        } else {
-            _word.value = wordList.removeAt(0)
+            resetList()
         }
+        _word.value = wordList.removeAt(0)
     }
 
     fun onSkip() {

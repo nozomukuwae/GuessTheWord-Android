@@ -55,6 +55,9 @@ class GameFragment : Fragment() {
         viewModel.word.observe(viewLifecycleOwner, Observer {
             binding.wordText.text = it
         })
+        viewModel.remainingSecondsText.observe(viewLifecycleOwner, Observer {
+            binding.timerText.text = it
+        })
         viewModel.gameFinished.observe(viewLifecycleOwner, Observer {
             if (it) gameFinished()
         })
